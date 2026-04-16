@@ -1,0 +1,15 @@
+{
+  "no_elegibles": {
+    "categorias": ["perecederos", "higiene"],
+    "motivo": "Por seguridad y control sanitario, no se aceptan devoluciones de productos perecederos o de higiene personal."
+  },
+  "elegibles": {
+    "categorias": ["ropa", "accesorios"],
+    "ventana_dias": 30,
+    "instrucciones": [
+      "Empaca el producto en su estado original.",
+      "Genera la etiqueta de devolucion desde tu cuenta.",
+      "Entrega el paquete en un punto de acopio autorizado."
+    ]
+  }
+}
