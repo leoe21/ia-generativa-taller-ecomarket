@@ -1,0 +1,32 @@
+[
+  {
+    "categoria": "pagos",
+    "pregunta": "Que metodos de pago acepta EcoMarket?",
+    "respuesta": "EcoMarket acepta tarjetas debito y credito, transferencias bancarias y billeteras digitales autorizadas en Colombia."
+  },
+  {
+    "categoria": "facturacion",
+    "pregunta": "Cuando recibo la factura electronica?",
+    "respuesta": "La factura electronica se envia al correo registrado una vez el pago ha sido confirmado."
+  },
+  {
+    "categoria": "envios",
+    "pregunta": "Cuanto tarda un envio estandar?",
+    "respuesta": "Las entregas estandar suelen tardar entre 2 y 5 dias habiles, dependiendo de la ciudad de destino."
+  },
+  {
+    "categoria": "devoluciones",
+    "pregunta": "Puedo devolver productos de higiene personal?",
+    "respuesta": "No. Los productos de higiene personal no son elegibles para devolucion por razones de seguridad y control sanitario."
+  },
+  {
+    "categoria": "soporte",
+    "pregunta": "Que pasa si mi consulta no puede resolverse automaticamente?",
+    "respuesta": "El caso debe escalarse a un agente humano si implica fraude, reclamos legales, reembolsos excepcionales o falta de informacion suficiente."
+  },
+  {
+    "categoria": "cupones",
+    "pregunta": "En que casos EcoMarket ofrece un cupon de compensacion?",
+    "respuesta": "Cuando un pedido presenta retraso atribuible a EcoMarket o al operador logistico, soporte puede ofrecer un cupon del 5 por ciento."
+  }
+]

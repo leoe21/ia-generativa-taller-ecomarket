@@ -115,6 +115,6 @@ Incluir en el repositorio:
 - `prompts/order_status_prompt.md` y `prompts/returns_prompt.md`
 - `data/orders.json` (≥10 pedidos) y `data/return_policies.json`
 - `app.py` y módulos en `src/`
-- Este archivo `docs/fase3_prompts.md` y las instrucciones de `README.md`
+- Este archivo `docs/taller1/fase3_prompts.md` y las instrucciones de `README.md`
 
 Con esto se cumple la forma de entrega del taller: **Markdown** para documentación y **código ejecutable** que produce respuestas ante los prompts.

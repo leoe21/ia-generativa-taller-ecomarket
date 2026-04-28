@@ -7,13 +7,21 @@ from dotenv import load_dotenv
 from src.llm_client import generate_response
 from src.open_source_client import generate_response_ollama
 from src.rag_engine import (
+    build_general_rag_prompt,
     build_order_context,
     classify_return,
     find_order,
+    format_retrieved_context,
+    get_embedding_model_name,
+    get_knowledge_base_summary,
+    get_rag_top_k,
+    get_vector_store,
+    has_sufficient_context,
     load_orders,
     load_policies,
     load_order_prompt,
     load_returns_prompt,
+    retrieve_knowledge,
 )
 
 
@@ -49,7 +57,9 @@ def _fallback_order_answer(order: dict | None, tracking_number: str) -> str:
 
 def _fallback_return_answer(result: dict, category: str, days_since_purchase: int) -> str:
     if result["elegible"]:
-        instructions = " ".join([f"{idx + 1}) {step}" for idx, step in enumerate(result["instrucciones"])])
+        instructions = " ".join(
+            [f"{idx + 1}) {step}" for idx, step in enumerate(result["instrucciones"])]
+        )
         return (
             f"Tu solicitud para la categoria {category} con {days_since_purchase} dias desde la compra es elegible. "
             f"{result['motivo']} Sigue estos pasos: {instructions}"
@@ -60,19 +70,56 @@ def _fallback_return_answer(result: dict, category: str, days_since_purchase: in
     )
 
 
-st.set_page_config(page_title="EcoMarket AI Support", page_icon=":seedling:", layout="wide")
-st.title("EcoMarket - Soporte Inteligente con IA Generativa")
-st.caption("Demo academica para optimizacion de atencion al cliente en e-commerce (RAG + Open-Source/Gemini)")
+def _fallback_general_answer() -> str:
+    return (
+        "No fue posible usar el modelo generativo en este momento. "
+        "Puedes revisar los fragmentos recuperados o intentar nuevamente con Ollama."
+    )
+
+
+@st.cache_resource(show_spinner=False)
+def _get_vector_store_cached(index_version: int):
+    return get_vector_store(force_rebuild=index_version > 0)
+
+
+def _load_vector_store(force_rebuild: bool = False):
+    if force_rebuild:
+        st.session_state.index_version += 1
+    return _get_vector_store_cached(st.session_state.index_version)
+
+
+st.set_page_config(page_title="EcoMarket RAG Support", page_icon=":seedling:", layout="wide")
+st.title("EcoMarket - Sistema RAG para atencion al cliente")
+st.caption(
+    "Taller practico #2: recuperacion documental con embeddings, ChromaDB y generacion con Ollama o Gemini."
+)
 
 provider = st.sidebar.selectbox(
     "Motor de generacion",
     options=["Open-source local (Ollama)", "Gemini API"],
     index=0,
 )
-st.sidebar.caption("Sugerido para el taller: Open-source local (Ollama).")
+st.sidebar.caption("Generacion recomendada para el taller: Open-source local (Ollama).")
+st.sidebar.subheader("Configuracion RAG")
+st.sidebar.write(f"Embedding model: `{get_embedding_model_name()}`")
+st.sidebar.write("Vector store: `ChromaDB`")
+st.sidebar.write(f"Top-k por defecto: `{get_rag_top_k()}`")
 
 if "last_request_ts" not in st.session_state:
     st.session_state.last_request_ts = 0.0
+if "index_version" not in st.session_state:
+    st.session_state.index_version = 0
+
+knowledge_summary = get_knowledge_base_summary()
+st.sidebar.write(f"Documentos en knowledge/: `{len(knowledge_summary)}`")
+
+if st.sidebar.button("Reconstruir indice RAG"):
+    with st.spinner("Reconstruyendo indice vectorial..."):
+        try:
+            _load_vector_store(force_rebuild=True)
+            st.sidebar.success("Indice RAG reconstruido correctamente.")
+        except Exception as error:
+            st.sidebar.error(f"No fue posible reconstruir el indice: {error}")
 
 
 def _cooldown_ready() -> bool:
@@ -84,9 +131,93 @@ def _cooldown_ready() -> bool:
     st.session_state.last_request_ts = time.time()
     return True
 
-tab_order, tab_returns, tab_data = st.tabs(
-    ["Estado de pedido", "Gestion de devoluciones", "Contexto y evidencias"]
+
+tab_general, tab_order, tab_returns, tab_data = st.tabs(
+    [
+        "Asistente general RAG",
+        "Estado de pedido",
+        "Gestion de devoluciones",
+        "Contexto y evidencias",
+    ]
 )
+
+with tab_general:
+    st.subheader("Consulta abierta sobre EcoMarket")
+    st.write(
+        "Este flujo recupera fragmentos de la base documental antes de responder. "
+        "Si no hay evidencia suficiente, el sistema se abstiene y recomienda escalar a soporte humano."
+    )
+    question = st.text_area(
+        "Pregunta del cliente",
+        placeholder=(
+            "Ejemplo: Que metodos de pago aceptan? "
+            "Puedo devolver un shampoo? "
+            "Tienen disponible la botella reutilizable?"
+        ),
+        height=120,
+    )
+    top_k = st.slider("Fragmentos a recuperar", min_value=2, max_value=6, value=get_rag_top_k())
+    run_general = st.button("Consultar asistente RAG")
+
+    if run_general:
+        if not _cooldown_ready():
+            st.stop()
+        if not question.strip():
+            st.warning("Ingresa una pregunta para continuar.")
+        else:
+            try:
+                with st.spinner("Cargando indice vectorial y recuperando contexto..."):
+                    vector_store = _load_vector_store()
+                    retrieval_results = retrieve_knowledge(question, vector_store=vector_store, k=top_k)
+                    retrieved_context = format_retrieved_context(retrieval_results)
+                    enough_context = has_sufficient_context(retrieval_results)
+                    final_prompt = build_general_rag_prompt(question, retrieved_context) if enough_context else ""
+            except Exception as error:
+                st.error(f"No fue posible ejecutar el flujo RAG: {error}")
+            else:
+                if not enough_context:
+                    st.warning(
+                        "La base de conocimiento no ofrece evidencia suficiente para responder con confianza."
+                    )
+                    st.write(
+                        "No cuento con suficiente informacion en la base de conocimiento de EcoMarket "
+                        "para atender esta solicitud. Te recomiendo escalar el caso a soporte humano."
+                    )
+                else:
+                    with st.spinner(f"Generando respuesta con {provider}..."):
+                        try:
+                            if provider == "Open-source local (Ollama)":
+                                answer = generate_response_ollama(final_prompt, temperature=0.1)
+                            else:
+                                answer = generate_response(final_prompt, temperature=0.1)
+                            st.success("Respuesta generada")
+                            st.caption(f"Fuente: {provider}")
+                            st.write(answer)
+                        except Exception as error:
+                            if provider == "Gemini API" and _is_quota_error(error):
+                                st.warning(
+                                    "La API de Gemini indico limite de uso (cuota 429). "
+                                    "Mientras tanto se muestra un respaldo sin generacion."
+                                )
+                                st.write(_fallback_general_answer())
+                            else:
+                                st.error(f"No fue posible generar respuesta: {error}")
+
+                sources = sorted(
+                    {
+                        item["document"].metadata.get("source", "desconocida")
+                        for item in retrieval_results
+                    }
+                )
+                st.info(
+                    f"Fragmentos recuperados: {len(retrieval_results)} | "
+                    f"Fuentes usadas: {', '.join(sources) if sources else 'ninguna'}"
+                )
+                with st.expander("Ver contexto recuperado"):
+                    st.code(retrieved_context)
+                if final_prompt:
+                    with st.expander("Ver prompt final"):
+                        st.code(final_prompt)
 
 with tab_order:
     st.subheader("Consulta de estado de pedido")
@@ -121,18 +252,18 @@ with tab_order:
                 except Exception as error:
                     if provider == "Gemini API" and _is_quota_error(error):
                         st.warning(
-                            "La API de Gemini indicó límite de uso (cuota 429). "
-                            "Mientras tanto se muestra una respuesta de respaldo generada solo con los datos locales (sin LLM)."
+                            "La API de Gemini indico limite de uso (cuota 429). "
+                            "Mientras tanto se muestra una respuesta de respaldo generada solo con los datos locales."
                         )
                         st.caption(
-                            "Opciones: usa **Open-source local (Ollama)** en la barra lateral, "
-                            "espera a que se renueve el cupo del free tier o revisa cuotas en Google AI Studio."
+                            "Opciones: usa Open-source local (Ollama), espera a que se renueve el cupo "
+                            "del free tier o revisa cuotas en Google AI Studio."
                         )
                         st.write(_fallback_order_answer(order, tracking_number))
                     else:
                         st.error(f"No fue posible generar respuesta: {error}")
 
-            with st.expander("Ver contexto recuperado (RAG)"):
+            with st.expander("Ver contexto recuperado (legacy)"):
                 st.code(order_context)
             with st.expander("Ver prompt final"):
                 st.code(final_prompt)
@@ -176,11 +307,11 @@ with tab_returns:
             except Exception as error:
                 if provider == "Gemini API" and _is_quota_error(error):
                     st.warning(
-                        "La API de Gemini indicó límite de uso (cuota 429). "
-                        "Mientras tanto se muestra una respuesta de respaldo con las políticas locales (sin LLM)."
+                        "La API de Gemini indico limite de uso (cuota 429). "
+                        "Mientras tanto se muestra una respuesta de respaldo con las politicas locales."
                     )
                     st.caption(
-                        "Opciones: **Ollama** en la barra lateral, esperar o revisar cuotas en Google AI Studio."
+                        "Opciones: usa Ollama en la barra lateral, espera o revisa cuotas en Google AI Studio."
                     )
                     st.write(_fallback_return_answer(result, category, int(days_since_purchase)))
                 else:
@@ -193,18 +324,21 @@ with tab_returns:
             for step in result["instrucciones"]:
                 st.write(f"- {step}")
 
-        with st.expander("Ver contexto recuperado (RAG)"):
+        with st.expander("Ver contexto recuperado (legacy)"):
             st.code(policy_context)
         with st.expander("Ver prompt final"):
             st.code(final_prompt)
 
 with tab_data:
-    st.subheader("Base de pedidos de prueba (10 registros)")
+    st.subheader("Base de conocimiento del RAG")
+    st.json(knowledge_summary)
+    st.subheader("Base de pedidos de prueba (legacy)")
     st.json(load_orders())
-    st.subheader("Politicas de devolucion")
+    st.subheader("Politicas de devolucion (legacy)")
     st.json(load_policies())
 
 st.divider()
 st.caption(
-    "Nota: La respuesta automatiza consultas repetitivas. Los casos sensibles o complejos deben escalarse a soporte humano."
+    "Nota: el asistente general responde solo con evidencia recuperada. "
+    "Los casos sensibles, ambiguos o fuera del alcance de la base documental deben escalarse a soporte humano."
 )

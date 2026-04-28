@@ -1,3 +1,9 @@
 streamlit
 google-generativeai
 python-dotenv
+langchain
+langchain-community
+langchain-huggingface
+chromadb
+sentence-transformers
+torchvision

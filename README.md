@@ -1,50 +1,36 @@
-# EcoMarket — Solución integral de IA generativa
+# EcoMarket - Taller practico #2
 
-Aplicación en **Streamlit** para optimizar la atención al cliente en e-commerce (**Taller práctico #1**). Incluye documentación en Markdown (fases 1 y 2) y demo ejecutable con prompts y RAG (fase 3).
+Implementacion de un **sistema RAG** para optimizar la atencion al cliente en una empresa de e-commerce. El proyecto extiende el trabajo del Taller 1 y agrega:
 
-## Qué incluye
+- embeddings multilingues,
+- base vectorial con `ChromaDB`,
+- base documental en `knowledge/`,
+- recuperacion semantica para consultas abiertas,
+- y una nueva interfaz en Streamlit para responder con evidencia o abstenerse si no hay contexto suficiente.
 
-| Fase | Contenido | Archivo |
-|------|-----------|---------|
-| 1 | Selección y justificación del modelo (RAG + LLM, open-source / API opcional) | `docs/fase1_modelo.md` |
-| 2 | Fortalezas, limitaciones y riesgos éticos | `docs/fase2_analisis_etico.md` |
-| 3 | Ingeniería de prompts, encadenado en código y guía de despliegue | `docs/fase3_prompts.md` |
+## Estructura principal
 
-**Implementación:** `data/orders.json` (≥10 pedidos de prueba), `data/return_policies.json`, plantillas en `prompts/`, lógica en `src/` y UI en `app.py`.
+| Componente | Descripcion |
+|-----------|-------------|
+| `app.py` | Interfaz Streamlit con asistente general RAG y tabs legacy del Taller 1 |
+| `src/rag_engine.py` | Carga documental, chunking, embeddings, Chroma y recuperacion |
+| `rag_ejemplo.py` | Script CLI para probar el flujo RAG |
+| `knowledge/` | Base de conocimiento con documentos `.md`, `.json` y `.csv` |
+| `prompts/general_rag_prompt.md` | Prompt principal para consultas abiertas |
+| `docs/taller2/fase1_componentes_rag.md` | Fase 1: seleccion y justificacion de componentes |
+| `docs/taller2/fase2_base_conocimiento.md` | Fase 2: documentos, chunking e indexacion |
+| `docs/taller2/fase3_integracion_rag.md` | Fase 3: integracion, ejecucion y limitaciones |
 
----
+## Componentes elegidos
 
-## Requisitos
+- **Embedding model:** `intfloat/multilingual-e5-base`
+- **Vector store:** `ChromaDB`
+- **Framework principal:** `LangChain`
+- **Generacion:** `Ollama` o `Gemini`
 
-- **Python 3.10+**
-- **Ollama** (recomendado para el taller; modelo open-source sin cuota de API)
-- Opcional: **Google Gemini** si quieres probar la opción por API en la barra lateral
+## Instalacion
 
----
-
-## Inicio rápido (recomendado: Ollama)
-
-Sigue este orden: primero el motor local, luego el proyecto Python.
-
-### 1) Ollama y el modelo
-
-1. Instala Ollama: [https://ollama.com/download](https://ollama.com/download)
-2. Deja Ollama en ejecución (servidor local en `http://localhost:11434`).
-3. Descarga el modelo (una vez; **no** va dentro del `venv`):
-
-   ```text
-   ollama pull llama3.2:3b
-   ```
-
-4. Comprueba que aparece en la lista:
-
-   ```text
-   ollama list
-   ```
-
-### 2) Entorno virtual y dependencias (Python)
-
-En la carpeta del proyecto (PowerShell en Windows):
+### 1. Crear entorno virtual
 
 ```text
 python -m venv .venv
@@ -52,65 +38,74 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-### 3) Variables de entorno
+### 2. Configurar variables de entorno
 
-Copia `.env.example` a `.env` y ajusta si cambias de modelo en Ollama:
+Copia `.env.example` a `.env`.
+
+Variables principales:
 
 ```text
 OLLAMA_MODEL=llama3.2:3b
-# Opcional si el servidor no es el predeterminado:
-# OLLAMA_BASE_URL=http://127.0.0.1:11434
+EMBEDDING_MODEL=intfloat/multilingual-e5-base
+CHROMA_PERSIST_DIR=chroma_db
+RAG_TOP_K=4
+RAG_CHUNK_SIZE=700
+RAG_CHUNK_OVERLAP=120
+RAG_MIN_RELEVANCE=0.2
 ```
 
-`GOOGLE_API_KEY` solo es necesario si vas a usar **Gemini** en la app.
+`GOOGLE_API_KEY` solo es necesaria si vas a usar Gemini.
 
-### 4) Ejecutar la aplicación
+### 3. Preparar Ollama
+
+1. Instala Ollama: [https://ollama.com/download](https://ollama.com/download)
+2. Deja el servicio activo en `http://127.0.0.1:11434`
+3. Descarga un modelo local:
+
+```text
+ollama pull llama3.2:3b
+```
+
+## Ejecucion
+
+### App web
 
 ```text
 streamlit run app.py
 ```
 
-En el navegador, en la **barra lateral**, elige **“Open-source local (Ollama)”** y prueba las pestañas *Estado de pedido* y *Gestión de devoluciones*.
+### Script CLI
 
-**Detalle de despliegue, flujo RAG y solución de problemas con Ollama:** ver `docs/fase3_prompts.md` (sección 3.4).
+```text
+python rag_ejemplo.py --query "Que metodos de pago aceptan?" --provider ollama
+```
 
-### Si aparece: «No fue posible conectar con Ollama…»
+Opciones utiles:
 
-Eso significa que **no hay ningún servidor escuchando** en la dirección que usa la app (por defecto `http://127.0.0.1:11434`).
+```text
+python rag_ejemplo.py --query "Puedo devolver un shampoo?" --provider ollama --rebuild
+python rag_ejemplo.py --query "Tienen disponible la botella reutilizable?" --provider gemini --top-k 5
+```
 
-1. **Instala Ollama** desde [ollama.com/download](https://ollama.com/download) si aún no lo hiciste.
-2. **Abre la aplicación Ollama en Windows** (Menú Inicio → *Ollama*). Debería quedar un icono en la **bandeja del sistema**; sin eso, el servicio no suele estar activo.
-3. En **PowerShell**, comprueba:
-   - `ollama list` → debe listar modelos (si está vacío: `ollama pull llama3.2:3b`).
-   - `Invoke-WebRequest -Uri http://127.0.0.1:11434/api/tags -UseBasicParsing` → debe responder JSON, no error de conexión.
-4. Si Ollama está en **otro puerto o PC**, define en `.env`: `OLLAMA_BASE_URL=http://IP:PUERTO` (sin barra final).
-5. **VPN o firewall** a veces bloquean `localhost`; prueba desactivar la VPN un momento o permitir Ollama en el firewall de Windows.
+## Como funciona el RAG
 
----
+1. Los documentos en `knowledge/` se cargan y convierten en objetos `Document`.
+2. Se fragmentan con `RecursiveCharacterTextSplitter`.
+3. Cada fragmento se transforma en embedding.
+4. Los vectores se almacenan en `ChromaDB`.
+5. Ante una consulta, se recuperan los fragmentos mas relevantes.
+6. El LLM responde solo con ese contexto.
+7. Si la relevancia es insuficiente, el asistente indica que no cuenta con herramientas para responder con seguridad.
 
-## Opción alternativa: Gemini (API)
+## Base de conocimiento incluida
 
-Si seleccionas **“Gemini API”** en la barra lateral:
+- `knowledge/politicas_operativas.md`
+- `knowledge/faqs_ecomarket.json`
+- `knowledge/catalogo_productos.csv`
+- `knowledge/guia_logistica.md`
 
-- Configura en `.env` al menos `GOOGLE_API_KEY` (desde [Google AI Studio](https://aistudio.google.com)).
-- **`GEMINI_MODEL`:** déjalo **vacío** para que la app pruebe en orden modelos **Flash** habituales del free tier (`gemini-1.5-flash`, `gemini-1.5-flash-latest`, `gemini-2.0-flash`, etc.). Si quieres uno concreto, pega el **ID exacto** que ves en el selector de modelo de AI Studio.
-- El nombre del modelo no “gasta más cuota” que otro: cuenta cada llamada a la API. Si ves **429**, suele ser límite diario/por minuto del proyecto; prueba más tarde o usa **Ollama**.
-- Si un modelo devuelve **404**, la app prueba el siguiente de la lista.
-- Si aparece **cuota (429)** y no hay respuesta, la interfaz puede usar **respaldo** con los datos locales.
+## Notas academicas
 
-No subas `.env` al repositorio (está en `.gitignore`).
-
----
-
-## Flujo de la aplicación
-
-1. **Estado de pedido:** busca el ID en `data/orders.json`, arma el contexto y envía el prompt completo al modelo elegido.
-2. **Devoluciones:** usa políticas en `data/return_policies.json`, clasificación en código y el prompt de devoluciones.
-3. **Contexto y evidencias:** muestra los JSON de prueba para revisión académica.
-
----
-
-## Notas académicas
-
-- Prioriza **Ollama** para evidenciar el impacto de los prompts sin depender de cuota cloud.
-- La IA automatiza consultas repetitivas (~80%); casos complejos o sensibles deben escalarse a soporte humano.
+- La base documental es simulada pero representa fuentes operativas reales del negocio.
+- El sistema conserva los tabs de pedido y devoluciones como comparativo con el Taller 1.
+- La entrega principal del Taller 2 debe apoyarse en los tres archivos de `docs/` creados para esta version.

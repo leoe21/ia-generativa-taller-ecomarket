@@ -1,0 +1,7 @@
+sku,nombre,categoria,descripcion,precio_cop,stock,disponible
+ECO-001,Cafe organico 500g,alimentos,"Cafe organico molido de comercio justo, empaque reciclable.",28500,42,si
+ECO-002,Shampoo solido natural,higiene,"Shampoo solido libre de sulfatos, enfocado en bajo impacto ambiental.",18900,18,si
+ECO-003,Camiseta de algodon reciclado,ropa,"Camiseta unisex elaborada con algodon reciclado.",45900,25,si
+ECO-004,Botella reutilizable 750ml,accesorios,"Botella termica de acero inoxidable para uso diario.",52000,12,si
+ECO-005,Kit de cubiertos portatil,accesorios,"Cubiertos reutilizables en estuche de bambu.",24000,0,no
+ECO-006,Granola artesanal 300g,alimentos,"Granola con frutos secos y avena integral.",16500,30,si
