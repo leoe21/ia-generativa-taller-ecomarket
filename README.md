@@ -16,7 +16,7 @@ Implementacion de un **sistema RAG** para optimizar la atencion al cliente en un
 | `src/rag_engine.py` | Carga documental, chunking, embeddings, Chroma y recuperacion |
 | `rag_ejemplo.py` | Script CLI para probar el flujo RAG |
 | `knowledge/` | Base de conocimiento con documentos `.md`, `.json` y `.csv` |
-| `prompts/general_rag_prompt.md` | Prompt principal para consultas abiertas |
+| `prompts/general_rag_prompt.md` | Prompt principal para consultas abiertas con control de evidencia, abstencion y formato de salida |
 | `docs/taller2/fase1_componentes_rag.md` | Fase 1: seleccion y justificacion de componentes |
 | `docs/taller2/fase2_base_conocimiento.md` | Fase 2: documentos, chunking e indexacion |
 | `docs/taller2/fase3_integracion_rag.md` | Fase 3: integracion, ejecucion y limitaciones |
