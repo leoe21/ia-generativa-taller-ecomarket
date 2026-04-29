@@ -1,5 +1,6 @@
 import argparse
 
+from src.hf_client import generate_response_hf
 from src.llm_client import generate_response
 from src.open_source_client import generate_response_ollama
 from src.rag_engine import (
@@ -17,7 +18,7 @@ def main() -> None:
     parser.add_argument(
         "--provider",
         default="ollama",
-        choices=["ollama", "gemini"],
+        choices=["ollama", "gemini", "hf"],
         help="Motor de generacion a usar.",
     )
     parser.add_argument(
@@ -51,6 +52,8 @@ def main() -> None:
     prompt = build_general_rag_prompt(args.query, retrieved_context)
     if args.provider == "ollama":
         answer = generate_response_ollama(prompt, temperature=0.1)
+    elif args.provider == "hf":
+        answer = generate_response_hf(prompt, temperature=0.1)
     else:
         answer = generate_response(prompt, temperature=0.1)
 

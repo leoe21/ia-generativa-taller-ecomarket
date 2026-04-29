@@ -26,7 +26,7 @@ Implementacion de un **sistema RAG** para optimizar la atencion al cliente en un
 - **Embedding model:** `intfloat/multilingual-e5-base`
 - **Vector store:** `ChromaDB`
 - **Framework principal:** `LangChain`
-- **Generacion:** `Ollama` o `Gemini`
+- **Generacion:** `Ollama`, `Gemini` o `Hugging Face`
 
 ## Instalacion
 
@@ -55,6 +55,7 @@ RAG_MIN_RELEVANCE=0.2
 ```
 
 `GOOGLE_API_KEY` solo es necesaria si vas a usar Gemini.
+`HF_TOKEN` solo es necesario si vas a usar Hugging Face.
 
 ### 3. Preparar Ollama
 
@@ -64,6 +65,16 @@ RAG_MIN_RELEVANCE=0.2
 
 ```text
 ollama pull llama3.2:3b
+```
+
+### 4. Preparar Hugging Face (opcional)
+
+1. Crea un token en Hugging Face con permiso `Inference -> Make calls to Inference Providers`
+2. Agrega en `.env`:
+
+```text
+HF_TOKEN=tu_token
+HF_MODEL=Qwen/Qwen2.5-7B-Instruct
 ```
 
 ## Ejecucion
@@ -85,6 +96,7 @@ Opciones utiles:
 ```text
 python rag_ejemplo.py --query "Puedo devolver un shampoo?" --provider ollama --rebuild
 python rag_ejemplo.py --query "Tienen disponible la botella reutilizable?" --provider gemini --top-k 5
+python rag_ejemplo.py --query "Cuanto cuesta el cafe organico 500g?" --provider hf
 ```
 
 ## Como funciona el RAG

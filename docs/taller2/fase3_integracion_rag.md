@@ -9,13 +9,14 @@ La implementacion usa:
 - `LangChain` para orquestar documentos, chunking y recuperacion.
 - `HuggingFaceEmbeddings` para generar vectores.
 - `ChromaDB` para almacenar e indexar los embeddings.
-- `Ollama` o `Gemini` como motores de generacion.
+- `Ollama`, `Gemini` o `Hugging Face` como motores de generacion.
 - `Streamlit` como interfaz de demostracion.
 
 ## Archivos clave
 
 - `app.py`: interfaz principal con la nueva pestana **Asistente general RAG**.
 - `src/rag_engine.py`: carga documental, chunking, embeddings, Chroma y recuperacion.
+- `src/hf_client.py`: cliente para generacion via Hugging Face Inference API.
 - `prompts/general_rag_prompt.md`: prompt principal para consultas abiertas.
 - `rag_ejemplo.py`: script CLI para probar el flujo RAG sin la interfaz web.
 - `knowledge/`: base de conocimiento.
@@ -57,6 +58,8 @@ Variables principales:
 - `RAG_CHUNK_SIZE=700`
 - `RAG_CHUNK_OVERLAP=120`
 - `RAG_MIN_RELEVANCE=0.2`
+- `HF_TOKEN=<token de Hugging Face>`
+- `HF_MODEL=Qwen/Qwen2.5-7B-Instruct`
 
 ### Ejecutar la app
 
@@ -70,6 +73,12 @@ streamlit run app.py
 python rag_ejemplo.py --query "Que metodos de pago aceptan?" --provider ollama
 ```
 
+Tambien puedes probar con Hugging Face:
+
+```text
+python rag_ejemplo.py --query "Cuanto cuesta el cafe organico 500g?" --provider hf
+```
+
 ## Limitaciones y suposiciones
 
 - La base documental es pequena y simulada con fines academicos.
@@ -77,3 +86,4 @@ python rag_ejemplo.py --query "Que metodos de pago aceptan?" --provider ollama
 - `ChromaDB` local es suficiente para demo, pero no representa la escala de produccion.
 - Si no hay evidencia suficiente, el sistema responde con abstencion en lugar de improvisar.
 - Los tabs de pedido y devoluciones se conservaron como legado del Taller 1 para comparar la evolucion del proyecto.
+- Los proveedores cloud como Gemini y Hugging Face dependen de token, cuota y disponibilidad del servicio externo.

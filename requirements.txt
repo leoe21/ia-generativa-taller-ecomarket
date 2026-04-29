@@ -7,3 +7,4 @@ langchain-huggingface
 chromadb
 sentence-transformers
 torchvision
+huggingface-hub

@@ -4,6 +4,7 @@ import time
 import streamlit as st
 from dotenv import load_dotenv
 
+from src.hf_client import generate_response_hf
 from src.llm_client import generate_response
 from src.open_source_client import generate_response_ollama
 from src.rag_engine import (
@@ -77,6 +78,16 @@ def _fallback_general_answer() -> str:
     )
 
 
+def _generate_with_provider(provider: str, prompt: str, temperature: float) -> str:
+    if provider == "Open-source local (Ollama)":
+        return generate_response_ollama(prompt, temperature=temperature)
+    if provider == "Gemini API":
+        return generate_response(prompt, temperature=temperature)
+    if provider == "Hugging Face API":
+        return generate_response_hf(prompt, temperature=temperature)
+    raise ValueError(f"Proveedor no soportado: {provider}")
+
+
 @st.cache_resource(show_spinner=False)
 def _get_vector_store_cached(index_version: int):
     return get_vector_store(force_rebuild=index_version > 0)
@@ -91,15 +102,18 @@ def _load_vector_store(force_rebuild: bool = False):
 st.set_page_config(page_title="EcoMarket RAG Support", page_icon=":seedling:", layout="wide")
 st.title("EcoMarket - Sistema RAG para atencion al cliente")
 st.caption(
-    "Taller practico #2: recuperacion documental con embeddings, ChromaDB y generacion con Ollama o Gemini."
+    "Taller practico #2: recuperacion documental con embeddings, ChromaDB y generacion con Ollama, Gemini o Hugging Face."
 )
 
 provider = st.sidebar.selectbox(
     "Motor de generacion",
-    options=["Open-source local (Ollama)", "Gemini API"],
+    options=["Open-source local (Ollama)", "Gemini API", "Hugging Face API"],
     index=0,
 )
-st.sidebar.caption("Generacion recomendada para el taller: Open-source local (Ollama).")
+st.sidebar.caption(
+    "Generacion recomendada para el taller: Open-source local (Ollama) en local, "
+    "o API cloud (Gemini / Hugging Face) para despliegue."
+)
 st.sidebar.subheader("Configuracion RAG")
 st.sidebar.write(f"Embedding model: `{get_embedding_model_name()}`")
 st.sidebar.write("Vector store: `ChromaDB`")
@@ -186,10 +200,7 @@ with tab_general:
                 else:
                     with st.spinner(f"Generando respuesta con {provider}..."):
                         try:
-                            if provider == "Open-source local (Ollama)":
-                                answer = generate_response_ollama(final_prompt, temperature=0.1)
-                            else:
-                                answer = generate_response(final_prompt, temperature=0.1)
+                            answer = _generate_with_provider(provider, final_prompt, temperature=0.1)
                             st.success("Respuesta generada")
                             st.caption(f"Fuente: {provider}")
                             st.write(answer)
@@ -242,10 +253,7 @@ with tab_order:
 
             with st.spinner(f"Generando respuesta con {provider}..."):
                 try:
-                    if provider == "Open-source local (Ollama)":
-                        answer = generate_response_ollama(final_prompt, temperature=0.2)
-                    else:
-                        answer = generate_response(final_prompt, temperature=0.2)
+                    answer = _generate_with_provider(provider, final_prompt, temperature=0.2)
                     st.success("Respuesta generada")
                     st.caption(f"Fuente: {provider}")
                     st.write(answer)
@@ -297,10 +305,7 @@ with tab_returns:
 
         with st.spinner(f"Generando respuesta con {provider}..."):
             try:
-                if provider == "Open-source local (Ollama)":
-                    answer = generate_response_ollama(final_prompt, temperature=0.2)
-                else:
-                    answer = generate_response(final_prompt, temperature=0.2)
+                answer = _generate_with_provider(provider, final_prompt, temperature=0.2)
                 st.success("Respuesta generada")
                 st.caption(f"Fuente: {provider}")
                 st.write(answer)
