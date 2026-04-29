@@ -2,6 +2,16 @@
 
 Esta fase cumple el requisito del taller: **diseñar prompts efectivos** y **demostrar su impacto en código**, con una cadena clara entre instrucción, contexto recuperado (RAG) y respuesta del modelo. La aplicación está implementada en **Streamlit** (`app.py`).
 
+En la versión mejorada del Taller 1, los prompts ya no usan instrucciones vagas como "genera la mejor respuesta", sino que definen con precisión:
+
+- el **objetivo** de la respuesta,
+- los **datos obligatorios** que deben aparecer,
+- la **lógica de decisión** por escenario,
+- las **restricciones de alucinación**,
+- y una **estructura esperada de salida**.
+
+Esto hace que la calidad del resultado no dependa solo de la intuición del modelo, sino de reglas observables y evaluables.
+
 Para el ejercicio académico se prioriza un modelo **open-source local** vía **Ollama** (nota del enunciado). La app también permite **Gemini por API** como opción opcional para comparar.
 
 ---
@@ -12,15 +22,27 @@ Para el ejercicio académico se prioriza un modelo **open-source local** vía **
 
 **Variables que inyecta el código:** `{order_context}` (texto generado desde `data/orders.json` según el ID buscado) y `{tracking_number}`.
 
-**Comportamiento esperado del modelo:**
+**Diseño mejorado del prompt:**
 
-- Actuar como agente de soporte de EcoMarket.
-- Usar **solo** la información del contexto (mitiga alucinaciones sobre el pedido).
-- Si no hay pedido en la base de prueba, pedir verificación amable del número.
-- Si el pedido está **retrasado** (`retrasado: true` en JSON), disculparse y ofrecer **cupón del 5%**.
-- Respuesta breve (máx. 120 palabras) y en español.
+- Define un **objetivo explícito**: responder con exactitud, utilidad y tono profesional.
+- Obliga a usar **solo** el contexto del pedido.
+- Distingue dos escenarios operativos:
+  - pedido no encontrado,
+  - pedido encontrado.
+- Si el pedido existe, exige mencionar de forma obligatoria:
+  - ID del pedido,
+  - estado actual,
+  - fecha estimada de entrega,
+  - enlace de seguimiento.
+- Si el pedido está **retrasado** (`retrasado: true`), obliga a:
+  - disculparse,
+  - mencionar el cupón del 5%.
+- Si el pedido **no** está retrasado, prohíbe mencionar compensaciones.
+- Define una **estructura esperada** de 3 o 4 oraciones y un máximo de 120 palabras.
 
-**Criterios del taller cubiertos:** número de seguimiento / ID de pedido, contexto con **al menos 10 pedidos** en la base simulada (`data/orders.json`), tono de agente y reglas de negocio explícitas.
+**Por qué esta versión es mejor:** la instrucción ya no delega al modelo la noción ambigua de "mejor respuesta", sino que especifica qué información debe aparecer, cuándo debe aparecer y qué no puede inventarse.
+
+**Criterios del taller cubiertos:** número de seguimiento / ID de pedido, contexto con **al menos 10 pedidos** en la base simulada (`data/orders.json`), tono de agente, reglas de negocio explícitas y criterios de salida verificables.
 
 ---
 
@@ -30,12 +52,21 @@ Para el ejercicio académico se prioriza un modelo **open-source local** vía **
 
 **Variables:** `{policy_context}` (JSON legible de `data/return_policies.json`), `{category}`, `{days_since_purchase}`.
 
-**Lógica de negocio reflejada en datos y prompt:**
+**Diseño mejorado del prompt:**
 
-- **Perecederos / higiene:** no elegibles (motivo de seguridad/sanidad).
-- **Ropa / accesorios:** elegibles dentro de **30 días**; se incluyen pasos orientativos (etiqueta, acopio, etc.).
+- Define un **objetivo explícito**: decidir elegibilidad y explicar la decisión.
+- Obliga a declarar de manera textual si la solicitud **es elegible o no**.
+- Convierte la política en reglas operativas claras:
+  - **Perecederos / higiene:** no elegibles por seguridad y control sanitario.
+  - **Ropa / accesorios dentro de 30 días:** elegibles.
+  - **Ropa / accesorios fuera de 30 días:** no elegibles por exceder la ventana máxima.
+- Si la solicitud es elegible, exige resumir los pasos de devolución.
+- Si no es elegible, exige explicar el motivo y ofrecer contacto con soporte humano.
+- Define una **estructura esperada** de 3 a 5 oraciones y máximo 140 palabras.
 
-La app además ejecuta una **clasificación previa** en `src/rag_engine.py` (`classify_return`) para mostrar en pantalla si el caso es elegible; el modelo redacta la respuesta empática final según el prompt y el contexto de políticas.
+La app además ejecuta una **clasificación previa** en `src/rag_engine.py` (`classify_return`) para mostrar en pantalla si el caso es elegible; el modelo redacta la respuesta final según el prompt y el contexto de políticas.
+
+**Por qué esta versión es mejor:** en vez de pedir una respuesta "final" genérica, el prompt especifica la decisión, la justificación y los pasos o alternativa esperados, reduciendo ambigüedad y aumentando consistencia.
 
 ---
 
@@ -48,9 +79,24 @@ La app además ejecuta una **clasificación previa** en `src/rag_engine.py` (`cl
    - **Gemini API:** `src/llm_client.py` (opcional; requiere `GOOGLE_API_KEY`).
 4. **Respaldo:** si Gemini devuelve error de **cuota (429)**, la interfaz puede mostrar una respuesta de respaldo basada en los mismos datos locales (sin depender del LLM en ese momento).
 
+Además, la construcción del contexto fue mejorada para que el prompt reciba campos legibles y semiestructurados en lugar de texto demasiado comprimido. En el caso de pedidos, el contexto ahora indica explícitamente si hubo coincidencia, el estado, la fecha estimada, el tracking y si existe retraso.
+
 ---
 
-## 3.4 Despliegue y ejecución (modelo Ollama requerido para la demo principal)
+## 3.4 Qué demuestra la mejora de prompts
+
+La mejora central de esta fase no es solo "dar más instrucciones", sino convertir el prompt en una **especificación operativa**. En concreto:
+
+- Se reemplazaron instrucciones subjetivas por reglas verificables.
+- Se separó el **objetivo**, las **restricciones** y la **estructura de salida**.
+- Se hizo explícita la diferencia entre escenarios.
+- Se redujo el margen para respuestas bonitas pero incompletas.
+
+Esto es importante para evaluación académica porque permite justificar por qué el prompt está diseñado con intención, criterio y control del comportamiento del modelo.
+
+---
+
+## 3.5 Despliegue y ejecución (modelo Ollama requerido para la demo principal)
 
 El taller pide evidenciar prompts con un modelo accesible; **Ollama** es el camino recomendado porque no depende de cuotas de API.
 
@@ -108,7 +154,7 @@ El taller pide evidenciar prompts con un modelo accesible; **Ollama** es el cami
 
 ---
 
-## 3.5 Evidencia para entrega (repositorio)
+## 3.6 Evidencia para entrega (repositorio)
 
 Incluir en el repositorio:
 

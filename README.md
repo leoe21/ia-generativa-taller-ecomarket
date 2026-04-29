@@ -72,7 +72,7 @@ streamlit run app.py
 
 En el navegador, en la **barra lateral**, elige **“Open-source local (Ollama)”** y prueba las pestañas *Estado de pedido* y *Gestión de devoluciones*.
 
-**Detalle de despliegue, flujo RAG y solución de problemas con Ollama:** ver `docs/fase3_prompts.md` (sección 3.4).
+**Detalle de despliegue, mejora de prompts, flujo RAG y solución de problemas con Ollama:** ver `docs/fase3_prompts.md` (secciones 3.4 y 3.5).
 
 ### Si aparece: «No fue posible conectar con Ollama…»
 

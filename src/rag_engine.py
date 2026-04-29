@@ -37,11 +37,17 @@ def find_order(tracking_number: str) -> Optional[Dict[str, Any]]:
 
 def build_order_context(order: Optional[Dict[str, Any]]) -> str:
     if order is None:
-        return "No se encontro informacion para ese numero de pedido."
+        return (
+            "RESULTADO_BUSQUEDA: sin_coincidencia\n"
+            "OBSERVACION: No se encontro informacion para ese numero de pedido."
+        )
     return (
-        f"ID_PEDIDO: {order['id_pedido']} | Estado: {order['estado']} | "
-        f"Entrega: {order['fecha_entrega_estimada']} | "
-        f"URL_TRACKING: {order['tracking_url']} | "
+        "RESULTADO_BUSQUEDA: encontrado\n"
+        f"ID_PEDIDO: {order['id_pedido']}\n"
+        f"CLIENTE: {order['cliente']}\n"
+        f"ESTADO_ACTUAL: {order['estado']}\n"
+        f"FECHA_ENTREGA_ESTIMADA: {order['fecha_entrega_estimada']}\n"
+        f"URL_TRACKING: {order['tracking_url']}\n"
         f"RETRASADO: {order['retrasado']}"
     )
 
