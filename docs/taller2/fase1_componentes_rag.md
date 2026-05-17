@@ -51,4 +51,4 @@ Extender el asistente de EcoMarket para responder consultas abiertas con base en
 
 ## Decision final
 
-Para este caso de uso, la combinacion **`multilingual-e5-base + ChromaDB`** ofrece el mejor balance entre precision en espanol, costo, facilidad de integracion y viabilidad para una entrega academica ejecutable.
+Para este caso de uso, la combinacion **`multilingual-e5-base + ChromaDB`** ofrece el mejor balance entre precision en español, costo, facilidad de integracion y viabilidad para una entrega academica ejecutable.
