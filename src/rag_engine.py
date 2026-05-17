@@ -47,9 +47,13 @@ def find_order(tracking_number: str) -> Optional[Dict[str, Any]]:
 def build_order_context(order: Optional[Dict[str, Any]]) -> str:
     if order is None:
         return "No se encontro informacion para ese numero de pedido."
+    delivery = order.get("fecha_entrega_estimada") or order.get("fecha_compra", "N/A")
     return (
         f"ID_PEDIDO: {order['id_pedido']} | Estado: {order['estado']} | "
-        f"Entrega: {order['fecha_entrega_estimada']} | "
+        f"Estado envio: {order.get('estado_envio', 'N/A')} | "
+        f"Categoria: {order.get('categoria_producto', 'N/A')} | "
+        f"Dias desde compra: {order.get('dias_desde_compra', 'N/A')} | "
+        f"Entrega/compra: {delivery} | "
         f"URL_TRACKING: {order['tracking_url']} | "
         f"RETRASADO: {order['retrasado']}"
     )

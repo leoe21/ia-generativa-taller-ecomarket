@@ -1,18 +1,24 @@
-# EcoMarket - Taller practico #2
+# EcoMarket - Proyecto final (agente + RAG)
 
-Implementacion de un **sistema RAG** para optimizar la atencion al cliente en una empresa de e-commerce. El proyecto extiende el trabajo del Taller 1 y agrega:
+Implementacion de un **asistente con agente**, **router de intenciones** y **sistema RAG** para atencion al cliente en e-commerce. El proyecto extiende los Talleres 1 y 2 y agrega:
 
 - embeddings multilingues,
 - base vectorial con `ChromaDB`,
 - base documental en `knowledge/`,
 - recuperacion semantica para consultas abiertas,
-- y una nueva interfaz en Streamlit para responder con evidencia o abstenerse si no hay contexto suficiente.
+- workflow de devoluciones con herramientas LangChain (`verificar_elegibilidad_producto`, `generar_etiqueta_devolucion`),
+- chat unificado con router (conocimiento / devolucion / pedido),
+- y interfaz Streamlit para demo y sustentacion.
 
 ## Estructura principal
 
 | Componente | Descripcion |
 |-----------|-------------|
-| `app.py` | Interfaz Streamlit con asistente general RAG y tabs legacy del Taller 1 |
+| `app.py` | Interfaz Streamlit: chat unificado con agente + tabs de diagnostico legacy |
+| `src/unified_assistant.py` | Router + orquestacion RAG / devoluciones / pedidos |
+| `src/agent_tools.py` | Herramientas LangChain del agente de devoluciones |
+| `src/intent_router.py` | Clasificacion de rutas y extraccion de datos del mensaje |
+| `src/returns_workflow.py` | Workflow explicito verificar -> generar etiqueta |
 | `src/rag_engine.py` | Carga documental, chunking, embeddings, Chroma y recuperacion |
 | `rag_ejemplo.py` | Script CLI para probar el flujo RAG |
 | `knowledge/` | Base de conocimiento con documentos `.md`, `.json` y `.csv` |
@@ -20,6 +26,10 @@ Implementacion de un **sistema RAG** para optimizar la atencion al cliente en un
 | `docs/taller2/fase1_componentes_rag.md` | Fase 1: seleccion y justificacion de componentes |
 | `docs/taller2/fase2_base_conocimiento.md` | Fase 2: documentos, chunking e indexacion |
 | `docs/taller2/fase3_integracion_rag.md` | Fase 3: integracion, ejecucion y limitaciones |
+| `docs/proyecto_final/fase1_arquitectura_agente.md` | Proyecto final Fase 1: arquitectura y tools |
+| `docs/proyecto_final/fase2_implementacion_agente.md` | Proyecto final Fase 2: implementacion |
+| `docs/proyecto_final/fase3_analisis_critico.md` | Proyecto final Fase 3: etica y monitoreo |
+| `docs/proyecto_final/fase4_despliegue.md` | Proyecto final Fase 4: Streamlit y demo |
 
 ## Componentes elegidos
 
@@ -28,62 +38,154 @@ Implementacion de un **sistema RAG** para optimizar la atencion al cliente en un
 - **Framework principal:** `LangChain`
 - **Generacion:** `Ollama`, `Gemini` o `Hugging Face`
 
-## Instalacion
+## Guia paso a paso (primera vez)
 
-### 1. Crear entorno virtual
+Sigue estos pasos **en orden**. La demo recomendada del proyecto final usa **Ollama** (local, sin cuota de API).
+
+### Paso 1: Instalar Ollama (si aun no lo tienes)
+
+1. Descarga e instala Ollama desde [https://ollama.com/download](https://ollama.com/download).
+2. Abre la aplicacion **Ollama** en Windows (debe quedar en la bandeja del sistema).
+3. Comprueba que el servicio responde (PowerShell):
+
+```powershell
+curl http://127.0.0.1:11434/api/tags
+```
+
+Si ves JSON (aunque sea una lista vacia), el servicio esta activo.
+
+### Paso 2: Descargar el modelo en Ollama
+
+El proyecto usa por defecto **`llama3.2:3b`**. Descargalo una sola vez:
+
+```powershell
+ollama pull llama3.2:3b
+```
+
+Verifica que aparece en la lista:
+
+```powershell
+ollama list
+```
+
+### Paso 3: Clonar o abrir el proyecto
+
+Ubicate en la carpeta del repositorio, por ejemplo:
+
+```powershell
+cd "ruta\a\Solución Integral IA Generativa - EcoMarket v2"
+```
+
+### Paso 4: Crear el entorno virtual de Python
+
+```powershell
+python -m venv .venv
+```
+
+(Solo hace falta la primera vez.)
+
+### Paso 5: Activar el entorno virtual
+
+**Windows (PowerShell):**
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Deberias ver `(.venv)` al inicio de la linea de comandos.
+
+**Windows (CMD):**
 
 ```text
-python -m venv .venv
-.venv\Scripts\Activate.ps1
+.venv\Scripts\activate.bat
+```
+
+### Paso 6: Instalar dependencias del proyecto
+
+Con el entorno activado:
+
+```powershell
 pip install -r requirements.txt
 ```
 
-### 2. Configurar variables de entorno
+La primera ejecucion puede tardar varios minutos (descarga de librerias y del modelo de embeddings).
 
-Copia `.env.example` a `.env`.
+### Paso 7: Configurar variables de entorno (opcional pero recomendado)
 
-Variables principales:
+```powershell
+copy .env.example .env
+```
+
+Valores utiles en `.env` (Ollama ya viene por defecto en el ejemplo):
 
 ```text
 OLLAMA_MODEL=llama3.2:3b
 EMBEDDING_MODEL=intfloat/multilingual-e5-base
 CHROMA_PERSIST_DIR=chroma_db
 RAG_TOP_K=4
-RAG_CHUNK_SIZE=700
-RAG_CHUNK_OVERLAP=120
 RAG_MIN_RELEVANCE=0.2
 ```
 
-`GOOGLE_API_KEY` solo es necesaria si vas a usar Gemini.
-`HF_TOKEN` solo es necesario si vas a usar Hugging Face.
+`GOOGLE_API_KEY` solo si usaras **Gemini**. `HF_TOKEN` solo si usaras **Hugging Face**.
 
-### 3. Preparar Ollama
+### Paso 8: Ejecutar la aplicacion
 
-1. Instala Ollama: [https://ollama.com/download](https://ollama.com/download)
-2. Deja el servicio activo en `http://127.0.0.1:11434`
-3. Descarga un modelo local:
+Con el entorno activado y Ollama abierto:
 
-```text
-ollama pull llama3.2:3b
+```powershell
+streamlit run app.py
 ```
 
-### 4. Preparar Hugging Face (opcional)
+Se abrira el navegador. En el menu lateral izquierdo veras **dos vistas**:
 
-1. Crea un token en Hugging Face con permiso `Inference -> Make calls to Inference Providers`
-2. Agrega en `.env`:
+| Vista | Para que sirve |
+|-------|----------------|
+| **Atencion al cliente** | Experiencia orientada al usuario final (chat sin metadatos tecnicos). |
+| **Sustentacion academica** | Chat con tema detectado, detalles tecnicos, panel de diagnostico y selector de LLM. |
+
+En **Sustentacion academica**, elige **Ollama** en la barra lateral y usa la pestana **Inicio** para probar el agente completo.
+
+### Dos paginas en la app
+
+- `views/cliente.py` — chat sin metadatos tecnicos; Ollama por defecto; errores amigables.
+- `views/sustentacion.py` — chat con **Tema detectado**, **Detalles tecnicos**, pestanas **Como usar** y **Panel tecnico**.
+- `src/streamlit_ui.py` — logica compartida (router, RAG, devoluciones).
+
+### Resumen rapido (cuando ya configuraste todo)
+
+Cada vez que vuelvas a trabajar en el proyecto:
+
+```powershell
+cd "ruta\a\Solución Integral IA Generativa - EcoMarket v2"
+.venv\Scripts\Activate.ps1
+# Asegurate de que Ollama este abierto en Windows
+streamlit run app.py
+```
+
+### Si algo falla con Ollama
+
+| Problema | Que revisar |
+|----------|-------------|
+| Error de conexion a `127.0.0.1:11434` | Abrir la app Ollama; probar `curl http://127.0.0.1:11434/api/tags` |
+| Modelo no encontrado | `ollama pull llama3.2:3b` y mismo nombre en `OLLAMA_MODEL` del `.env` |
+| Respuestas muy lentas | Normal la primera vez (carga de embeddings); espera o usa un PC con mas RAM |
+
+### APIs opcionales (Gemini / Hugging Face)
+
+No son necesarias para la sustentacion si usas Ollama.
+
+**Hugging Face:** crea un token con permiso de inferencia y agrega en `.env`:
 
 ```text
 HF_TOKEN=tu_token
 HF_MODEL=Qwen/Qwen2.5-7B-Instruct
 ```
 
-## Ejecucion
+**Gemini:** agrega `GOOGLE_API_KEY` en `.env`. Si aparece error 429, cambia a Ollama en la barra lateral.
 
-### App web
+## Ejecucion adicional
 
-```text
-streamlit run app.py
-```
+### Script CLI (solo RAG, sin chat del agente)
 
 ### Script CLI
 
@@ -116,8 +218,31 @@ python rag_ejemplo.py --query "Cuanto cuesta el cafe organico 500g?" --provider 
 - `knowledge/catalogo_productos.csv`
 - `knowledge/guia_logistica.md`
 
+## Documentacion del proyecto final
+
+Entregables en `docs/proyecto_final/`:
+
+- `fase1_arquitectura_agente.md` — diseno del agente, tools y router
+- `fase2_implementacion_agente.md` — implementacion e integracion con el Taller 2
+- `fase3_analisis_critico.md` — etica, monitoreo y mejoras
+- `fase4_despliegue.md` — interfaz Streamlit y guion de sustentacion
+
+## Asistente unificado (Proyecto final)
+
+1. El usuario escribe en el chat (vista **Atencion al cliente** o pestana **Inicio** en **Sustentacion academica**).
+2. El **router** clasifica: `CONOCIMIENTO`, `DEVOLUCION` o `PEDIDO` (tolera errores como *devovler*).
+3. Ruta conocimiento: RAG (Chroma) + LLM con evidencia.
+4. Ruta devolucion/reclamo: consulta pedido (si hay ID) -> verificar elegibilidad -> etiqueta **o** ticket de reembolso segun estado del envio.
+5. Ruta pedido: contexto de `data/orders.json` (~100 pedidos sinteticos) + prompt de estado.
+
+Regenerar pedidos sinteticos:
+
+```text
+python scripts/generate_synthetic_orders.py
+```
+
 ## Notas academicas
 
 - La base documental es simulada pero representa fuentes operativas reales del negocio.
-- El sistema conserva los tabs de pedido y devoluciones como comparativo con el Taller 1.
-- La entrega principal del Taller 2 debe apoyarse en los tres archivos de `docs/` creados para esta version.
+- Los tabs legacy permiten comparar con Talleres 1 y 2.
+- Documentacion del proyecto final en `docs/proyecto_final/`.

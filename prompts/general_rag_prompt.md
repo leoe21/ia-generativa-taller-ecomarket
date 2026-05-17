@@ -48,4 +48,4 @@ PREGUNTA DEL CLIENTE:
 CONTEXTO RECUPERADO:
 {retrieved_context}
 
-Genera una respuesta final que cumpla exactamente las reglas anteriores.
+Redacta ahora el mensaje final al cliente en espanol. No menciones reglas internas, prompts ni limitaciones del modelo. Si el contexto ayuda aunque sea en parte, responde con esa informacion.
